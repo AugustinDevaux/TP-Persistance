@@ -1,5 +1,6 @@
 package com.example.testmeteo.presentation
 
+import android.content.Context
 import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
 import android.widget.Button
@@ -18,6 +19,9 @@ import retrofit2.Callback
 import retrofit2.Response
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 
 class MainActivity: AppCompatActivity() {
     private lateinit var editTextCity: EditText
@@ -26,11 +30,11 @@ class MainActivity: AppCompatActivity() {
     private lateinit var swipeRefreshLayout: SwipeRefreshLayout
     private lateinit var weatherDao: WeatherDao
 
-    private val apikey = "bd5e378503939ddaee76f12ad7a97688"
+    private val apikey = "bd5e378503939ddaee76f12ad7a97608"
 
 
     private val sharedPreferencesName = "weatherSharedPref"
-    private val sharedPreferenceskey = "last_api_call_date"
+    private val sharedPreferencesKey = "last_api_call_date"
 
     private val apiService: WeatherApiService by lazy {
         Retrofit.Builder()
@@ -52,7 +56,7 @@ class MainActivity: AppCompatActivity() {
         btnGetWeather.setOnClickListener {
             val city = editTextCity.text.toString()
             if (city.isNotEmpty()) {
-                // fetchWeatherData(city)
+                fetchWeatherData(city)
             } else {
                 Toast.makeText(this, "Please enter a city", Toast.LENGTH_SHORT).show()
             }
@@ -67,6 +71,7 @@ class MainActivity: AppCompatActivity() {
                 if (response.isSuccessful) {
                     val weather = response.body()
                     if (weather != null) {
+                        saveLastApiCallDate()
                         showWeatherData(weather)
                     } else {
                         showToast("Weather data is null")
@@ -75,6 +80,7 @@ class MainActivity: AppCompatActivity() {
                     showToast("Weather response error")
                 }
                 swipeRefreshLayout.isRefreshing = false
+                showLastApiCallDate()
             }
 
             override fun onFailure(call: Call<Weather>, throwable: Throwable) {
@@ -99,6 +105,23 @@ class MainActivity: AppCompatActivity() {
             .load(iconUrl)
             .into(findViewById(R.id.imageViewWeatherIcon))
     }
-    
+
+    private fun saveLastApiCallDate() {
+        val currentDate =
+            SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault()).format(Date())
+        val sharedPreferences = getSharedPreferences (sharedPreferencesName, Context.MODE_PRIVATE)
+        sharedPreferences.edit().putString(sharedPreferencesKey, currentDate).apply()
+    }
+    private fun showLastApiCallDate() {
+        val sharedPreferences = getSharedPreferences(sharedPreferencesName, Context.MODE_PRIVATE)
+        val lastApiCallDate = sharedPreferences.getString(sharedPreferencesKey, "")
+        if (lastApiCallDate?.isNotEmpty() == true) {
+            val formattedDate = "Last API Call: $lastApiCallDate"
+            // Affiche la date dans le TextView
+            findViewById<TextView>(R.id.textViewLastApiCallDate).text = formattedDate
+        }
+
+    }
+
 
 }
