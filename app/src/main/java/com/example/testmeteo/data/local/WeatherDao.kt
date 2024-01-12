@@ -12,5 +12,5 @@ interface WeatherDao {
     fun insert (weatherEntity: WeatherEntity)
 
     @Query("SELECT * FROM weather_table WHERE cityName = :cityName ORDER BY timestamp DESC LIMIT 1")
-    fun getLatestWeather (cityName: String): WeatherEntity?
+    suspend fun getLatestWeather (cityName: String): WeatherEntity?
 }

@@ -72,13 +72,15 @@ class MainActivity: AppCompatActivity() {
     }
 
     private fun fetchWeatherData(city: String) {
-        swipeRefreshLayout.isRefreshing = true
-        val call = apiService.getWeather(city, apikey)
+        GlobalScope.launch(Dispatchers.Main) {
+
+            val lastSavedWeather = getWeatherFromDatabase(city)
+            swipeRefreshLayout.isRefreshing = true
+            val call = apiService.getWeather(city, apikey)
 
 
-        call.enqueue(object: Callback<Weather> {
-            override fun onResponse(call: Call<Weather>, response: Response<Weather>) {
-                GlobalScope.launch(Dispatchers.Main) {
+            call.enqueue(object: Callback<Weather> {
+                override fun onResponse(call: Call<Weather>, response: Response<Weather>) {
                     if (response.isSuccessful) {
                         val weather = response.body()
                         if (weather != null) {
@@ -97,13 +99,14 @@ class MainActivity: AppCompatActivity() {
                     showLastApiCallDate()
                     swipeRefreshLayout.isRefreshing = false
                 }
-            }
 
-            override fun onFailure(call: Call<Weather>, throwable: Throwable) {
-                showToast("Exception: ${throwable.message}")
-                swipeRefreshLayout.isRefreshing = false
-            }
-        })
+
+                override fun onFailure(call: Call<Weather>, throwable: Throwable) {
+                    showToast("Exception: ${throwable.message}")
+                    swipeRefreshLayout.isRefreshing = false
+                }
+            })
+        }
     }
 
     private fun showToast(text: String) {
@@ -154,9 +157,11 @@ class MainActivity: AppCompatActivity() {
         }
     }
 
-    //private suspend fun getWeatherFromDatabase (cityName: String): WeatherEntity? {
-        //return weatherDao.getLatestWeather (cityName)
-    //}
+    private suspend fun getWeatherFromDatabase(cityName: String): WeatherEntity? {
+
+        return weatherDao.getLatestWeather(cityName)
+
+    }
 
 
 
