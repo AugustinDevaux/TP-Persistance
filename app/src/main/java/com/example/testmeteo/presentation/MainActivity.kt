@@ -14,6 +14,11 @@ import com.example.testmeteo.WeatherApplication
 import com.example.testmeteo.data.local.WeatherDao
 import com.example.testmeteo.data.remote.Weather
 import com.example.testmeteo.network.WeatherApiService
+import com.example.weather.data.local.WeatherEntity
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.GlobalScope
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import retrofit2.Call
 import retrofit2.Callback
 import retrofit2.Response
@@ -61,26 +66,37 @@ class MainActivity: AppCompatActivity() {
                 Toast.makeText(this, "Please enter a city", Toast.LENGTH_SHORT).show()
             }
         }
+
+        weatherDao = WeatherApplication.weatherDatabase.weatherDao()
+
     }
 
     private fun fetchWeatherData(city: String) {
         swipeRefreshLayout.isRefreshing = true
         val call = apiService.getWeather(city, apikey)
+
+
         call.enqueue(object: Callback<Weather> {
             override fun onResponse(call: Call<Weather>, response: Response<Weather>) {
-                if (response.isSuccessful) {
-                    val weather = response.body()
-                    if (weather != null) {
-                        saveLastApiCallDate()
-                        showWeatherData(weather)
+                GlobalScope.launch(Dispatchers.Main) {
+                    if (response.isSuccessful) {
+                        val weather = response.body()
+                        if (weather != null) {
+                            saveLastApiCallDate()
+                            launch(Dispatchers.IO) {
+                                saveWeatherToDatabase(weather)
+                            }
+                            showWeatherData(weather)
+
+                        } else {
+                            showToast("Weather data is null")
+                        }
                     } else {
-                        showToast("Weather data is null")
+                        showToast("Weather response error")
                     }
-                } else {
-                    showToast("Weather response error")
+                    showLastApiCallDate()
+                    swipeRefreshLayout.isRefreshing = false
                 }
-                swipeRefreshLayout.isRefreshing = false
-                showLastApiCallDate()
             }
 
             override fun onFailure(call: Call<Weather>, throwable: Throwable) {
@@ -115,13 +131,35 @@ class MainActivity: AppCompatActivity() {
     private fun showLastApiCallDate() {
         val sharedPreferences = getSharedPreferences(sharedPreferencesName, Context.MODE_PRIVATE)
         val lastApiCallDate = sharedPreferences.getString(sharedPreferencesKey, "")
+
         if (lastApiCallDate?.isNotEmpty() == true) {
             val formattedDate = "Last API Call: $lastApiCallDate"
             // Affiche la date dans le TextView
             findViewById<TextView>(R.id.textViewLastApiCallDate).text = formattedDate
         }
-
     }
+
+    private suspend fun saveWeatherToDatabase (weather: Weather) {
+        val weatherEntity = WeatherEntity(
+            cityName = weather.name,
+            temperature = weather.main.temp,
+            humidity = weather.main.humidity,
+            description = weather.weather[0].description,
+            icon = weather.weather[0].icon
+        )
+
+        // Utilisation de Room pour insérer l'objet Weather dans la base de données
+        withContext(Dispatchers.IO) {
+            weatherDao.insert(weatherEntity)
+        }
+    }
+
+    //private suspend fun getWeatherFromDatabase (cityName: String): WeatherEntity? {
+        //return weatherDao.getLatestWeather (cityName)
+    //}
+
+
+
 
 
 }
