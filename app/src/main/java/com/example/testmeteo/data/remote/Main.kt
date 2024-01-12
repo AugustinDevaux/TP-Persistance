@@ -1,6 +1,6 @@
 package com.example.testmeteo.data.remote
 
-class Main {
+data class Main (
     val temp: Double,
     val humidity: Int
-}
+)

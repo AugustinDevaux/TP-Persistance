@@ -1,6 +1,6 @@
 package com.example.testmeteo.data.remote
 
-class WeatherInfo {
+data class WeatherInfo (
     val description: String,
     val icon: String
-}
+)

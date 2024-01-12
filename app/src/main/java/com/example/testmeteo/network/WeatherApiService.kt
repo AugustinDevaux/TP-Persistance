@@ -1,7 +1,9 @@
 package com.example.testmeteo.network;
 
-import androidx.contentpager.content.Query;
-import com.google.android.gms.awareness.state.Weather
+import com.example.testmeteo.data.remote.Weather
+import retrofit2.Call
+import retrofit2.http.GET
+import retrofit2.http.Query
 
 public interface WeatherApiService {
     @GET("weather")

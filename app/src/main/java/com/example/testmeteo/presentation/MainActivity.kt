@@ -7,10 +7,17 @@ import android.widget.EditText
 import android.widget.TextView
 import android.widget.Toast
 import androidx.swiperefreshlayout.widget.SwipeRefreshLayout
+import com.bumptech.glide.Glide
 import com.example.testmeteo.R
 import com.example.testmeteo.WeatherApplication
 import com.example.testmeteo.data.local.WeatherDao
+import com.example.testmeteo.data.remote.Weather
 import com.example.testmeteo.network.WeatherApiService
+import retrofit2.Call
+import retrofit2.Callback
+import retrofit2.Response
+import retrofit2.Retrofit
+import retrofit2.converter.gson.GsonConverterFactory
 
 class MainActivity: AppCompatActivity() {
     private lateinit var editTextCity: EditText
@@ -43,19 +50,55 @@ class MainActivity: AppCompatActivity() {
         swipeRefreshLayout = findViewById(R.id.swipeRefreshLayout)
 
         btnGetWeather.setOnClickListener {
-            val city editTextCity.text.toString()
+            val city = editTextCity.text.toString()
             if (city.isNotEmpty()) {
-                fetchWeatherData(city)
+                // fetchWeatherData(city)
             } else {
-                Toast.makeText(context: this, text: "Please enter a city", Toast.LENGTH_SHORT).show()
+                Toast.makeText(this, "Please enter a city", Toast.LENGTH_SHORT).show()
             }
         }
-
-
-
-
-
-
     }
+
+    private fun fetchWeatherData(city: String) {
+        swipeRefreshLayout.isRefreshing = true
+        val call = apiService.getWeather(city, apikey)
+        call.enqueue(object: Callback<Weather> {
+            override fun onResponse(call: Call<Weather>, response: Response<Weather>) {
+                if (response.isSuccessful) {
+                    val weather = response.body()
+                    if (weather != null) {
+                        showWeatherData(weather)
+                    } else {
+                        showToast("Weather data is null")
+                    }
+                } else {
+                    showToast("Weather response error")
+                }
+                swipeRefreshLayout.isRefreshing = false
+            }
+
+            override fun onFailure(call: Call<Weather>, throwable: Throwable) {
+                showToast("Exception: ${throwable.message}")
+                swipeRefreshLayout.isRefreshing = false
+            }
+        })
+    }
+
+    private fun showToast(text: String) {
+        Toast.makeText(this@MainActivity, text, Toast.LENGTH_SHORT)
+            .show()
+    }
+
+    private fun showWeatherData(weather: Weather) {
+        val resultText =
+            "Temperature: ${weather.main.temp}\nHumidity: ${weather.main.humidity}\nDescription: ${weather.weather[0].description}"
+        textViewResult.text = resultText
+        // Afficher l'icône météo à partir de l'URL fournie par L'API
+        val iconUrl = "https://openweathermap.org/img/wn/${weather.weather[0].icon}.png"
+        Glide.with(this@MainActivity)
+            .load(iconUrl)
+            .into(findViewById(R.id.imageViewWeatherIcon))
+    }
+    
 
 }
