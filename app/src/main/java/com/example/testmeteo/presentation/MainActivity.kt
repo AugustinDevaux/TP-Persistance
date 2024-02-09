@@ -3,10 +3,13 @@ package com.example.testmeteo.presentation
 import android.content.Context
 import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
+import android.widget.Adapter
 import android.widget.Button
 import android.widget.EditText
 import android.widget.TextView
 import android.widget.Toast
+import androidx.recyclerview.widget.LinearLayoutManager
+import androidx.recyclerview.widget.RecyclerView
 import androidx.swiperefreshlayout.widget.SwipeRefreshLayout
 import com.bumptech.glide.Glide
 import com.example.testmeteo.R
@@ -14,9 +17,13 @@ import com.example.testmeteo.WeatherApplication
 import com.example.testmeteo.data.local.WeatherDao
 import com.example.testmeteo.data.remote.Weather
 import com.example.testmeteo.network.WeatherApiService
+import com.example.testmeteo.presentation.view.WeatherAdapter
 import com.example.weather.data.local.WeatherEntity
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.GlobalScope
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import retrofit2.Call
@@ -33,7 +40,9 @@ class MainActivity: AppCompatActivity() {
     private lateinit var btnGetWeather: Button
     private lateinit var textViewResult: TextView
     private lateinit var swipeRefreshLayout: SwipeRefreshLayout
+    private lateinit var recyclerView: RecyclerView
     private lateinit var weatherDao: WeatherDao
+    private lateinit var adapter: WeatherAdapter
 
     private val apikey = "bd5e378503939ddaee76f12ad7a97608"
 
@@ -55,23 +64,24 @@ class MainActivity: AppCompatActivity() {
 
         editTextCity = findViewById(R.id.editTextCity)
         btnGetWeather = findViewById(R.id.btnGetWeather)
-        textViewResult = findViewById(R.id.textViewResult)
         swipeRefreshLayout = findViewById(R.id.swipeRefreshLayout)
 
-        btnGetWeather.setOnClickListener {
-            val city = editTextCity.text.toString()
-            if (city.isNotEmpty()) {
-                fetchWeatherData(city)
-            } else {
-                Toast.makeText(this, "Please enter a city", Toast.LENGTH_SHORT).show()
-            }
-        }
+        //Ajout des listeners
+        btnGetWeather.setOnClickListener { fetchData() }
+        swipeRefreshLayout.setOnRefreshListener { fetchData() }
 
+        //Init du weatherDao
         weatherDao = WeatherApplication.weatherDatabase.weatherDao()
 
+        //Init weatherAdapter
+        adapter = WeatherAdapter()
+
+        recyclerView = findViewById(R.id.recyclerViewWeather)
+        recyclerView.layoutManager = LinearLayoutManager(this)
+        recyclerView.adapter = adapter
     }
 
-    private fun fetchWeatherData(city: String) {
+    /*private fun fetchWeatherData(city: String) {
         GlobalScope.launch(Dispatchers.Main) {
 
             val lastSavedWeather = getWeatherFromDatabase(city)
@@ -107,6 +117,48 @@ class MainActivity: AppCompatActivity() {
                 }
             })
         }
+    }*/
+
+    private suspend fun fetchWeatherData(cities: List<String>) {
+        swipeRefreshLayout.isRefreshing = true
+        coroutineScope {
+            // Utiliser async pour lancer plusieurs coroutines en parallèle
+            val deferredWeather = cities.map { city ->
+                async(Dispatchers.IO) {
+                    // Faire un appel à l'API pour chaque ville
+                    val response = apiService.getWeather(city, apiKey).execute()
+                    if (response.isSuccessful) {
+                        // Si l'appel est réussi, renvoyer le résultat
+                        response.body()
+                    } else {
+                        // Sinon, renvoyer null
+                        null
+                    }
+                }
+            }
+            // Utiliser awaitAll pour attendre que toutes les coroutines se terminent
+            val weathers = deferredWeather.awaitAll()
+            // Icaiter les résultats
+            val nonEmptyWeathers: MutableList<Weather> = arrayListOf()
+            weathers.map { weather ->
+                if (weather != null)
+                    nonEmptyWeathers.apply {
+                        this.add(weather)
+                    }
+            }
+            if (nonEmptyWeathers.isNotEmpty()) {
+                // Afficher les données météorologiques dans l'interface utilisateur
+                showWeatherData(nonEmptyWeathers)
+            } else {
+                showToast("Failed to fetch weather data")
+            }
+
+            swipeRefreshLayout.isRefreshing = false
+        }
+    }
+
+    private fun showWeatherData(weathers: List<Weather>) {
+        adapter.setData(weathers)
     }
 
     private fun showToast(text: String) {
@@ -114,7 +166,8 @@ class MainActivity: AppCompatActivity() {
             .show()
     }
 
-    private fun showWeatherData(weather: Weather) {
+    //OLD showWeatherData
+/*    private fun showWeatherData(weather: Weather) {
         val resultText =
             "Temperature: ${weather.main.temp}\nHumidity: ${weather.main.humidity}\nDescription: ${weather.weather[0].description}"
         textViewResult.text = resultText
@@ -123,7 +176,7 @@ class MainActivity: AppCompatActivity() {
         Glide.with(this@MainActivity)
             .load(iconUrl)
             .into(findViewById(R.id.imageViewWeatherIcon))
-    }
+    }*/
 
     private fun saveLastApiCallDate() {
         val currentDate =
