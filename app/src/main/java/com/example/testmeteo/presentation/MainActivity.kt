@@ -45,8 +45,9 @@ class MainActivity: AppCompatActivity() {
     private lateinit var weatherDao: WeatherDao
     private lateinit var adapter: WeatherAdapter
 
-    private val apiKey = "bd5e378503939ddaee76f12ad7a97608"
+    private val viewModel = MainViewModel()
 
+    private val apiKey = "bd5e378503939ddaee76f12ad7a97608"
 
     private val sharedPreferencesName = "weatherSharedPref"
     private val sharedPreferencesKey = "last_api_call_date"
@@ -78,13 +79,18 @@ class MainActivity: AppCompatActivity() {
         adapter = WeatherAdapter()
 
         recyclerView = findViewById(R.id.recyclerViewWeather)
-        recyclerView.layoutManager = LinearLayoutManager(this)
+        recyclerView.layoutManager =
+            LinearLayoutManager(
+                this@MainActivity,
+                LinearLayoutManager.VERTICAL,
+                false
+            )
         recyclerView.adapter = adapter
     }
 
 
     private fun fetchData() {
-        val cities = editTextCity.text.toString().split(",")
+        val cities = viewModel.splitCitiesNames(editTextCity.text.toString())
         if (cities.isNotEmpty()) {
             runBlocking {
             fetchWeatherData(cities)
