@@ -47,18 +47,11 @@ class MainActivity: AppCompatActivity() {
 
     private val viewModel = MainViewModel()
 
-    private val apiKey = "bd5e378503939ddaee76f12ad7a97608"
 
     private val sharedPreferencesName = "weatherSharedPref"
     private val sharedPreferencesKey = "last_api_call_date"
 
-    private val apiService: WeatherApiService by lazy {
-        Retrofit.Builder()
-            .baseUrl("https://api.openweathermap.org/data/2.5/")
-            .addConverterFactory(GsonConverterFactory.create())
-            .build()
-            .create(WeatherApiService::class.java)
-    }
+
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)

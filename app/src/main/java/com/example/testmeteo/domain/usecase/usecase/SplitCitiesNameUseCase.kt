@@ -1,4 +1,4 @@
-package com.example.testmeteo.domain.usecase
+package com.example.testmeteo.domain.usecase.usecase
 
 class SplitCitiesNameUseCase {
 
