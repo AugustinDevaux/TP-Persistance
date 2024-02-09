@@ -103,6 +103,8 @@ class MainActivity: AppCompatActivity() {
                     // Faire un appel à l'API pour chaque ville
                     val response = apiService.getWeather(city, apiKey).execute()
                     if (response.isSuccessful) {
+                        // Sauvegarde la date du dernier appel à l'API dans SharedPreferences
+                        saveLastApiCallDate()
                         // Si l'appel est réussi, renvoyer le résultat
                         response.body()
                     } else {
@@ -113,17 +115,23 @@ class MainActivity: AppCompatActivity() {
             }
             // Utiliser awaitAll pour attendre que toutes les coroutines se terminent
             val weathers = deferredWeather.awaitAll()
-            // Icaiter les résultats
+            // Traiter les résultats
             val nonEmptyWeathers: MutableList<Weather> = arrayListOf()
             weathers.map { weather ->
-                if (weather != null)
+                if (weather != null) {
+                 // Sauvegarde l'objet Weather dans la BDD Room
+                    launch(Dispatchers.IO) {
+                        saveWeatherToDatabase(weather)
+                    }
                     nonEmptyWeathers.apply {
                         this.add(weather)
                     }
+                }
             }
             if (nonEmptyWeathers.isNotEmpty()) {
                 // Afficher les données météorologiques dans l'interface utilisateur
                 showWeatherData(nonEmptyWeathers)
+                showLastApiCallDate()
             } else {
                 showToast("Failed to fetch weather data")
             }
