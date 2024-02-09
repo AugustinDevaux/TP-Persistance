@@ -25,6 +25,7 @@ import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withContext
 import retrofit2.Call
 import retrofit2.Callback
@@ -81,43 +82,17 @@ class MainActivity: AppCompatActivity() {
         recyclerView.adapter = adapter
     }
 
-    /*private fun fetchWeatherData(city: String) {
-        GlobalScope.launch(Dispatchers.Main) {
 
-            val lastSavedWeather = getWeatherFromDatabase(city)
-            swipeRefreshLayout.isRefreshing = true
-            val call = apiService.getWeather(city, apikey)
-
-
-            call.enqueue(object: Callback<Weather> {
-                override fun onResponse(call: Call<Weather>, response: Response<Weather>) {
-                    if (response.isSuccessful) {
-                        val weather = response.body()
-                        if (weather != null) {
-                            saveLastApiCallDate()
-                            launch(Dispatchers.IO) {
-                                saveWeatherToDatabase(weather)
-                            }
-                            showWeatherData(weather)
-
-                        } else {
-                            showToast("Weather data is null")
-                        }
-                    } else {
-                        showToast("Weather response error")
-                    }
-                    showLastApiCallDate()
-                    swipeRefreshLayout.isRefreshing = false
-                }
-
-
-                override fun onFailure(call: Call<Weather>, throwable: Throwable) {
-                    showToast("Exception: ${throwable.message}")
-                    swipeRefreshLayout.isRefreshing = false
-                }
-            })
+    private fun fetchData() {
+        val cities = editTextCity.text.toString().split(",")
+        if (cities.isNotEmpty()) {
+            runBlocking {
+            fetchWeatherData(cities)
+            }
+        } else {
+            Toast.makeText(this, "Please enter a city", Toast.LENGTH_SHORT).show()
         }
-    }*/
+    }
 
     private suspend fun fetchWeatherData(cities: List<String>) {
         swipeRefreshLayout.isRefreshing = true
