@@ -45,7 +45,7 @@ class MainActivity: AppCompatActivity() {
     private lateinit var weatherDao: WeatherDao
     private lateinit var adapter: WeatherAdapter
 
-    private val apikey = "bd5e378503939ddaee76f12ad7a97608"
+    private val apiKey = "bd5e378503939ddaee76f12ad7a97608"
 
 
     private val sharedPreferencesName = "weatherSharedPref"
